@@ -1,0 +1,148 @@
+/* ===== DOODOOK Welcome & Login styles ===== */
+
+/* Global full-viewport sizing for desktop web */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+body {
+  margin: 0;
+  background: #f6f7fb; /* ensure background fills the whole page */
+  color: #111827;
+}
+#root { display: block; }
+
+/* 라이트 테마 강제 (기본 템플릿 다크 오버라이드) */
+:root { color-scheme: light; }
+
+/* 공통 페이지 래퍼 */
+.welcome-page,
+.login-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f6f7fb; /* 아주 옅은 회색 배경 */
+  color: #111827;      /* gray-900 */
+  padding: 24px;
+  width: 100%;
+}
+
+/* ===== Welcome ===== */
+.welcome-card {
+  width: clamp(640px, 42vw, 840px);
+  text-align: center;
+  margin: 0 auto;
+}
+
+/* "Welcome to the" */
+.welcome-eyebrow {
+  margin: 0 0 8px 0;
+  font-size: 36px;
+  line-height: 1.2;
+  font-weight: 500;
+  color: #111827;
+  letter-spacing: 0.01em;
+}
+
+/* "DOODOOK" */
+.welcome-brand {
+  margin: 0 0 20px 0;
+  font-size: 44px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+/* 한글 부제 */
+.welcome-sub {
+  margin: 0 0 24px 0;
+  font-size: 16px;
+  color: #6b7280; /* gray-500 */
+}
+
+/* 얇은 구분선 */
+.welcome-divider {
+  width: 140px;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 12px auto 28px;
+  border-radius: 1px;
+}
+
+/* 보라색 Start 버튼 (필 모양) */
+.welcome-start-btn {
+  appearance: none;
+  border: none;
+  border-radius: 9999px;
+  min-width: 220px;
+  height: 64px;
+  padding: 0 28px;
+  background: #a78bfa;   /* brand purple */
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(167, 139, 250, 0.35);
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.06s ease;
+}
+.welcome-start-btn:hover {
+  background: #8b5cf6;   /* hover 진한 보라 */
+  box-shadow: 0 14px 28px rgba(139, 92, 246, 0.35);
+}
+.welcome-start-btn:active { transform: translateY(1px); }
+
+/* ===== Login (기초 스타일, 필요 시 사용) ===== */
+.login-card {
+  width: min(560px, 92vw);
+  margin: 0 auto;
+  text-align: center; /* 중앙 정렬 */
+}
+
+.login-title {
+  margin: 0 0 24px 0;
+  color: #a78bfa;
+  font-size: 56px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.kakao-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;   /* 내용 중앙 정렬 */
+  gap: 10px;
+  background: #FEE500;       /* 카카오 노랑 */
+  color: #191600;
+  border: none;
+  border-radius: 12px;
+  min-width: 360px;          /* 버튼 더 길게 */
+  height: 56px;
+  padding: 0 20px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+  cursor: pointer;
+}
+.kakao-btn:hover { filter: brightness(0.98); }
+.kakao-btn:active { transform: translateY(1px); }
+
+.login-auto {
+  display: flex;              /* 블록 레벨로 줄바꿈 */
+  justify-content: center;    /* 가운데 정렬 */
+  align-items: center;
+  gap: 8px;
+  color: #6b7280;
+  margin-top: 14px;
+  user-select: none;
+}
+.login-auto input { accent-color: #a78bfa; }
+
+/* Desktop refinements */
+@media (min-width: 1200px) {
+  .welcome-eyebrow { font-size: 40px; }
+  .welcome-brand  { font-size: 56px; }
+  .welcome-divider { width: 160px; margin: 16px auto 32px; }
+  .welcome-start-btn { min-width: 240px; height: 68px; font-size: 24px; }
+}
