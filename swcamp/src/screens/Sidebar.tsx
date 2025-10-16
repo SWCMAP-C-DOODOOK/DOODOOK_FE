@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
 
-/**
- * Sidebar: 선택된 메뉴를 현재 경로(path)에 따라 보라색으로 하이라이트합니다.
- * 라우팅은 App.tsx에서 처리하고, 이 컴포넌트는 링크 + active 처리만 담당합니다.
- */
 export default function Sidebar() {
     // 현재 경로 추적
     const [path, setPath] = useState<string>(
