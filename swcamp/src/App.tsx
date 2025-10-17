@@ -1,17 +1,42 @@
 import "./App.css";
+import { Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
+
 import Welcome from "./screens/Welcome";
 import Login from "./screens/Login";
 import Dashboard from "./screens/Dashboard";
-import Transaction from "./screens/Transaction.tsx";
-import Register from "./screens/Register.tsx";
-import Settings from "./screens/Settings.tsx";
+import Transaction from "./screens/Transaction";
+import Register from "./screens/Register";
+import Settings from "./screens/Settings";
+import AuthCallback from "./screens/AuthCallback";
+
+function RequireAuth() {
+    const token = localStorage.getItem("access_token");
+    const location = useLocation();
+
+    return token ? (
+        <Outlet />
+    ) : (
+        <Navigate to="/login" state={{ from: location }} replace />
+    );
+}
 
 export default function App() {
-    const path = typeof window !== "undefined" ? window.location.pathname : "/";
-    if (path === "/login") return <Login />;
-    if (path === "/dashboard") return <Dashboard />;
-    if (path === "/transaction") return <Transaction />;
-    if (path === "/register") return <Register />;
-    if (path === "/settings") return <Settings />;
-    return <Welcome />;
+    return (
+        <Routes>
+            {/* 공개 */}
+            <Route path="/" element={<Welcome />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+
+            {/* 보호: 한 번만 RequireAuth 적용 */}
+            <Route element={<RequireAuth />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/transaction" element={<Transaction />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/settings" element={<Settings />} />
+            </Route>
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+    );
 }
