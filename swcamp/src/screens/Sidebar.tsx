@@ -1,68 +1,23 @@
-import { useEffect, useState } from "react";
+import { NavLink } from "react-router-dom";
 
 export default function Sidebar() {
-    // 현재 경로 추적
-    const [path, setPath] = useState<string>(
-        typeof window !== "undefined" ? window.location.pathname : "/"
-    );
-
-    useEffect(() => {
-        const update = () => setPath(window.location.pathname);
-
-        // 브라우저 앞으로/뒤로 가기
-        window.addEventListener("popstate", update);
-
-        // SPA 내비게이션 반영(history API)
-        const origPush = history.pushState;
-        const origReplace = history.replaceState;
-        history.pushState = function (...args) {
-            // @ts-ignore
-            origPush.apply(this, args);
-            update();
-        };
-        history.replaceState = function (...args) {
-            // @ts-ignore
-            origReplace.apply(this, args);
-            update();
-        };
-
-        // 동일 출처 a태그 클릭도 반영
-        const onClick = (e: MouseEvent) => {
-            const a = (e.target as HTMLElement).closest("a");
-            if (!a) return;
-            const href = a.getAttribute("href");
-            if (!href) return;
-            try {
-                const url = new URL(href, window.location.origin);
-                if (url.origin === window.location.origin) {
-                    setTimeout(update, 0);
-                }
-            } catch { /* ignore */ }
-        };
-        document.addEventListener("click", onClick, true);
-
-        return () => {
-            window.removeEventListener("popstate", update);
-            document.removeEventListener("click", onClick, true);
-            history.pushState = origPush;
-            history.replaceState = origReplace;
-        };
-    }, []);
-
-    const item = (href: string, label: string, svgPath?: string) => {
-        const isActive = path === href || path.startsWith(href + "/");
-        return (
-            <a className={`nav-item ${isActive ? "active" : ""}`} href={href}>
-                {svgPath && (
-                    <span className="nav-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d={svgPath} />
-            </svg>
-          </span>
-                )}
-                <span className="nav-text">{label}</span>
-            </a>
-        );
+    const item = (to: string, label: string, svgPath?: string) => {
+      return (
+        <NavLink
+          to={to}
+          className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+          end={false}
+        >
+          {svgPath && (
+            <span className="nav-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d={svgPath} />
+              </svg>
+            </span>
+          )}
+          <span className="nav-text">{label}</span>
+        </NavLink>
+      );
     };
 
     // 로그아웃: 저장된 인증정보(있을 경우) 비우고 웰컴으로 이동
@@ -75,9 +30,19 @@ export default function Sidebar() {
     };
 
     return (
-        <aside className="sidebar">
+        <aside
+            className="sidebar"
+            style={{
+              position: "sticky",
+              top: 0,
+              height: "100dvh",
+              display: "flex",
+              flexDirection: "column",
+              boxSizing: "border-box",
+            }}
+        >
             <div className="sidebar-brand">DOODOOK</div>
-            <nav className="nav">
+            <nav className="nav" style={{ flex: "1 1 auto", overflow: "auto" }}>
                 {item(
                     "/dashboard",
                     "대시보드",
@@ -99,7 +64,13 @@ export default function Sidebar() {
                     "M19.14 12.94a7.967 7.967 0 000-1.88l2.03-1.58a.5.5 0 00.12-.64l-1.92-3.32a.5.5 0 00-.6-.22l-2.39.96a7.963 7.963 0 00-1.63-.94l-.36-2.54A.5.5 0 0013.9 1h-3.8a.5.5 0 00-.5.42l-.36 2.54c-.58.23-1.13.54-1.63.94l-2.39-.96a.5.5 0 00-.6.22L1.7 7.02a.5.5 0 00.12.64l2.03 1.58c-.05.31-.08.62-.08.94s.03.63.08.94L1.82 12.7a.5.5 0 00-.12.64l1.92 3.32c.12.21.37.3.6.22l2.39-.96c.5.4 1.05.71 1.63.94l.36 2.54c.06.24.26.42.5.42h3.8c.24 0 .44-.18.5-.42l.36-2.54c.58-.23 1.13-.54 1.63-.94l2.39.96c.23.08.48-.01.6-.22l1.92-3.32a.5.5 0 00-.12-.64l-2.03-1.58z"
                 )}
             </nav>
-            <button className="logout-btn" onClick={onLogout}>Logout</button>
+            <button
+                className="logout-btn"
+                onClick={onLogout}
+                style={{ marginTop: "auto", width: "100%" }}
+            >
+                Logout
+            </button>
         </aside>
     );
 }

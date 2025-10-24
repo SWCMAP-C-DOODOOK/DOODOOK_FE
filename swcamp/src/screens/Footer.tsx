@@ -50,7 +50,7 @@ function Footer({
     >
       <nav className="footer-links" aria-label="푸터 링크" style={linksStyle}>
         <a href={bugUrl} target="_blank" rel="noreferrer" style={linkStyle}>
-          버그 리포트
+          Bug Report
         </a>
         <span aria-hidden="true" style={{ margin: "0 12px", color: "#9ca3af" }}>
           ·
