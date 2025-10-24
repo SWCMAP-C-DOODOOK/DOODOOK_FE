@@ -1,5 +1,6 @@
 import "./Main.css";
 import Sidebar from "../screens/Sidebar";
+import Footer from "../screens/Footer";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type ReceiptUploadResponse = { url: string };
@@ -284,6 +285,7 @@ export default function Register() {
             </button>
           </div>
         </div>
+        <Footer />
       </section>
     </div>
   );

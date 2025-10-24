@@ -1,5 +1,6 @@
 import "./Main.css";
 import Sidebar from "../screens/Sidebar";
+import Footer from "../screens/Footer";
 import { useEffect, useMemo, useState } from "react";
 
 /** 단일 거래 레코드 타입 */
@@ -145,6 +146,7 @@ export default function Transaction() {
           )}
           {err && <div style={{ color: "crimson", padding: 12 }}>불러오기 오류: {err}</div>}
         </div>
+        <Footer />
       </section>
     </div>
   );

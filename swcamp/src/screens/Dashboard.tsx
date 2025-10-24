@@ -1,5 +1,6 @@
 import "./Main.css";
 import Sidebar from "../screens/Sidebar";
+import Footer from "../screens/Footer";
 
 function VBar({ label, value, color }: { label: string; value: number; color: string }) {
   return (
@@ -9,45 +10,6 @@ function VBar({ label, value, color }: { label: string; value: number; color: st
       </div>
       <div className="vbar-label">{label}</div>
     </div>
-  );
-}
-
-function Footer() {
-  return (
-    <footer
-      className="footer"
-      style={{
-        marginTop: "24px",
-        padding: "16px 24px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        color: "#6b7280",
-        fontSize: "14px",
-        borderTop: "1px solid #e5e7eb",
-      }}
-    >
-      <div>
-        <a
-          href="https://github.com/SWCMAP-C-DOODOOK/DOODOOK_FE/issues"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: "inherit", textDecoration: "none" }}
-        >
-          Bug Report
-        </a>
-        <span style={{ margin: "0 12px" }}>·</span>
-        <a
-            href="https://www.notion.so/SW-C-26b02d9f7737812aae4fdc97056fef78"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: "inherit", textDecoration: "none" }}
-        >
-          About Us
-        </a>
-      </div>
-      <div>© DOODOOK</div>
-    </footer>
   );
 }
 

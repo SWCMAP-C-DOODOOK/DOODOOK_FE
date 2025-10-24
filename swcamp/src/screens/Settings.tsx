@@ -1,5 +1,6 @@
 import "./Main.css";
 import Sidebar from "../screens/Sidebar";
+import Footer from "../screens/Footer";
 import { useState, type ReactNode } from "react";
 
 type View = "home" | "members" | "dues" | "groups";
@@ -146,6 +147,7 @@ export default function Settings() {
             </table>
           </DetailShell>
         )}
+        <Footer />
       </section>
     </div>
   );
