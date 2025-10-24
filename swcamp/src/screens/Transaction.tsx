@@ -1,6 +1,7 @@
 import "./Main.css";
 import Sidebar from "../screens/Sidebar";
 import Footer from "../screens/Footer";
+import Header from "../screens/Header";
 import { useEffect, useMemo, useState } from "react";
 
 /** 단일 거래 레코드 타입 */
@@ -79,10 +80,7 @@ export default function Transaction() {
       <Sidebar />
 
       <section className="content">
-        <header className="topbar">
-          <div className="team">SW Camp_teamC ▾</div>
-          <div className="bell" aria-label="notifications">🔔</div>
-        </header>
+        <Header team="SW Camp_teamC" />
 
         <div className="section-label">입출금 내역</div>
 

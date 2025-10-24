@@ -1,6 +1,7 @@
 import "./Main.css";
 import Sidebar from "../screens/Sidebar";
 import Footer from "../screens/Footer";
+import Header from "../screens/Header";
 import { useState, type ReactNode } from "react";
 
 type View = "home" | "members" | "dues" | "groups";
@@ -42,10 +43,7 @@ export default function Settings() {
       <Sidebar />
 
       <section className="content">
-        <header className="topbar">
-          <div className="team">SW Camp_teamC ▾</div>
-          <div className="bell" aria-label="notifications">🔔</div>
-        </header>
+        <Header team="SW Camp_teamC" />
 
         {view === "home" && (
           <HomePanel onOpen={setView} />

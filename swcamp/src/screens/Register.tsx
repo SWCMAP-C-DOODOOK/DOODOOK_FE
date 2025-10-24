@@ -1,6 +1,7 @@
 import "./Main.css";
 import Sidebar from "../screens/Sidebar";
 import Footer from "../screens/Footer";
+import Header from "../screens/Header";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type ReceiptUploadResponse = { url: string };
@@ -182,10 +183,7 @@ export default function Register() {
       <Sidebar />
 
       <section className="content">
-        <header className="topbar">
-          <div className="team">SW Camp_teamC ▾</div>
-          <div className="bell" aria-label="notifications">🔔</div>
-        </header>
+        <Header team="SW Camp_teamC" />
 
         {/* 업로드 영역 */}
         <div ref={dropRef} className="card uploader">

@@ -1,6 +1,7 @@
 import "./Main.css";
 import Sidebar from "../screens/Sidebar";
 import Footer from "../screens/Footer";
+import Header from "../screens/Header";
 
 function VBar({ label, value, color }: { label: string; value: number; color: string }) {
   return (
@@ -19,10 +20,7 @@ export default function Dashboard() {
       <Sidebar />
 
       <section className="content">
-        <header className="topbar">
-          <div className="team">SW Camp_teamC ▾</div>
-          <div className="bell" aria-label="notifications">🔔</div>
-        </header>
+        <Header team="SW Camp_teamC" />
 
         <div className="grid">
           {/* Labels outside cards */}
