@@ -68,9 +68,8 @@ export default function Sidebar() {
     // 로그아웃: 저장된 인증정보(있을 경우) 비우고 웰컴으로 이동
     const onLogout = () => {
         try {
-            localStorage.removeItem("token");
-            localStorage.removeItem("auth");
-            sessionStorage.removeItem("token");
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
         } catch { /* ignore */ }
         window.location.href = "/";
     };
