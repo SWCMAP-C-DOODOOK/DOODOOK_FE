@@ -3,6 +3,7 @@ import Sidebar from "../screens/Sidebar";
 import Footer from "../screens/Footer";
 import Header from "../screens/Header";
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 /** 단일 거래 레코드 타입 */
 type Txn = {
@@ -36,32 +37,63 @@ export default function Transaction() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  /** 오픈뱅킹 거래목록 조회 */
+  const location = useLocation();
+  const currentGroup = useMemo(() => {
+    const g = new URLSearchParams(location.search).get("group")
+      ?? localStorage.getItem("doodook:selectedGroupId")
+      ?? "";
+    return g.trim();
+  }, [location.search]);
+
+  /** 거래목록 조회 (로컬 더미 JSON만 사용) */
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (start) params.set("start", start);
-    if (end) params.set("end", end);
-    if (tab !== "all") params.set("type", tab);
-
-    const url = `/api/v1/banking/transactions${params.toString() ? "?" + params.toString() : ""}`;
-
-    (async () => {
+    const load = async () => {
+      setLoading(true);
+      setErr(null);
       try {
-        setLoading(true);
-        setErr(null);
-        const res = await fetch(url, { credentials: "include" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data: Txn[] = await res.json();
-        setRows(data);
-      } catch (_e) {
-        // 서버가 아직 안 붙었으면 목데이터로 표시
-        setRows(MOCK);
+        const tryFetch = async (path: string) => {
+          const r = await fetch(path);
+          if (!r.ok) throw new Error(String(r.status));
+          return (await r.json()) as Txn[];
+        };
+        let data: Txn[] | null = null;
+        const gid = (currentGroup || "").toLowerCase();
+
+        // 1) 그룹별 표준 경로: /public/mock/groups/<groupId>/transactions.json
+        if (gid) {
+          const p1 = `/mock/groups/${encodeURIComponent(gid)}/transactions.json`;
+          try { data = await tryFetch(p1); } catch {}
+        }
+
+        // 2) 데모 파일 매핑: g1/g2 → demo_g1/demo_g2 (루트 또는 /mock)
+        if (!data && gid) {
+          const isG1 = gid === 'g1' || gid.endsWith('1');
+          const isG2 = gid === 'g2' || gid.endsWith('2');
+          const candidate = isG1 ? '/demo_g1_transactions.json'
+                           : isG2 ? '/demo_g2_transactions.json'
+                           : '';
+          if (candidate) { try { data = await tryFetch(candidate); } catch {} }
+          if (!data && candidate) {
+            const candidate2 = candidate.replace('/demo_', '/mock/demo_');
+            try { data = await tryFetch(candidate2); } catch {}
+          }
+        }
+
+        // 3) 공용 더미 파일
+        if (!data) {
+          try { data = await tryFetch('/mock/transactions.json'); } catch {}
+        }
+
+        setRows(data ?? []); // 새 그룹(데이터 없음)은 빈 표
+      } catch (e: any) {
+        setErr(e?.message ?? '로컬 데이터 로드 실패');
+        setRows([]);
       } finally {
         setLoading(false);
       }
-    })();
-  }, [q, start, end, tab]);
+    };
+    load();
+  }, [q, start, end, tab, currentGroup]);
 
   /** 클라이언트 사이드 추가 필터링 */
   const filtered = useMemo(() => {
@@ -116,6 +148,8 @@ export default function Transaction() {
         <div className="card">
           {loading ? (
             <div style={{ padding: 16 }}>불러오는 중…</div>
+          ) : filtered.length === 0 ? (
+            <div style={{ padding: 16, color: '#666' }}>표시할 데이터가 없습니다.</div>
           ) : (
             <table className="table">
               <thead>

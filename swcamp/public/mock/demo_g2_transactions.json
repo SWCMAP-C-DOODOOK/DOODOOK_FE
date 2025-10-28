@@ -1,0 +1,22 @@
+[
+  { "date": "2025-03-01", "description": "초기 이월", "deposit": 300000, "balance": 300000, "type": "income" },
+  { "date": "2025-03-08", "description": "회비(3월) 입금", "deposit": 100000, "balance": 400000, "type": "income" },
+  { "date": "2025-03-16", "description": "동아리 물품 구매", "withdraw": 52000, "balance": 348000, "type": "expense" },
+  { "date": "2025-03-25", "description": "회식비", "withdraw": 68000, "balance": 280000, "type": "expense" },
+  { "date": "2025-04-05", "description": "회비(4월) 입금", "deposit": 110000, "balance": 390000, "type": "income" },
+  { "date": "2025-04-12", "description": "세미나 간식비", "withdraw": 27000, "balance": 363000, "type": "expense" },
+  { "date": "2025-04-27", "description": "홍보물 인쇄", "withdraw": 43000, "balance": 320000, "type": "expense" },
+  { "date": "2025-05-03", "description": "후원금 입금", "deposit": 150000, "balance": 470000, "type": "income" },
+  { "date": "2025-05-14", "description": "워크숍 장소 대여", "withdraw": 120000, "balance": 350000, "type": "expense" },
+  { "date": "2025-05-29", "description": "교통비 지원", "withdraw": 45000, "balance": 305000, "type": "expense" },
+  { "date": "2025-06-04", "description": "공연 수익", "deposit": 250000, "balance": 555000, "type": "income" },
+  { "date": "2025-06-15", "description": "장비 대여료", "withdraw": 95000, "balance": 460000, "type": "expense" },
+  { "date": "2025-06-30", "description": "뒤풀이 비용", "withdraw": 72000, "balance": 388000, "type": "expense" },
+  { "date": "2025-07-07", "description": "회비(7월) 입금", "deposit": 90000, "balance": 478000, "type": "income" },
+  { "date": "2025-07-19", "description": "교육 자료 구입", "withdraw": 36000, "balance": 442000, "type": "expense" },
+  { "date": "2025-08-02", "description": "이자 수익", "deposit": 3000, "balance": 445000, "type": "income" },
+  { "date": "2025-08-16", "description": "합주실 대여", "withdraw": 65000, "balance": 380000, "type": "expense" },
+  { "date": "2025-09-05", "description": "후원금 입금", "deposit": 180000, "balance": 560000, "type": "income" },
+  { "date": "2025-09-21", "description": "행사 운영비", "withdraw": 155000, "balance": 405000, "type": "expense" },
+  { "date": "2025-10-09", "description": "웹 호스팅 비용", "withdraw": 22000, "balance": 383000, "type": "expense" }
+]

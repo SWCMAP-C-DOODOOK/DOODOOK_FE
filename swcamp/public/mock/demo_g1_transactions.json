@@ -1,0 +1,22 @@
+[
+  { "date": "2025-03-05", "description": "회비(3월) 입금", "deposit": 100000, "balance": 400000, "type": "income" },
+  { "date": "2025-03-12", "description": "연습실 대관료", "withdraw": 60000, "balance": 340000, "type": "expense" },
+  { "date": "2025-03-27", "description": "간식 구매", "withdraw": 23000, "balance": 317000, "type": "expense" },
+  { "date": "2025-04-03", "description": "후원금 입금", "deposit": 150000, "balance": 467000, "type": "income" },
+  { "date": "2025-04-15", "description": "현수막/인쇄비", "withdraw": 45000, "balance": 422000, "type": "expense" },
+  { "date": "2025-04-28", "description": "악기 수리비", "withdraw": 88000, "balance": 334000, "type": "expense" },
+  { "date": "2025-05-10", "description": "회비(5월) 입금", "deposit": 120000, "balance": 454000, "type": "income" },
+  { "date": "2025-05-18", "description": "공연장 대관료", "withdraw": 180000, "balance": 274000, "type": "expense" },
+  { "date": "2025-05-25", "description": "교통비(리허설)", "withdraw": 32000, "balance": 242000, "type": "expense" },
+  { "date": "2025-06-02", "description": "공연 수익", "deposit": 350000, "balance": 592000, "type": "income" },
+  { "date": "2025-06-14", "description": "음향 장비 대여", "withdraw": 110000, "balance": 482000, "type": "expense" },
+  { "date": "2025-06-29", "description": "뒤풀이 비용", "withdraw": 76000, "balance": 406000, "type": "expense" },
+  { "date": "2025-07-06", "description": "회비(7월) 입금", "deposit": 90000, "balance": 496000, "type": "income" },
+  { "date": "2025-07-20", "description": "유니폼 제작비", "withdraw": 140000, "balance": 356000, "type": "expense" },
+  { "date": "2025-08-03", "description": "이자 수익", "deposit": 2500, "balance": 358500, "type": "income" },
+  { "date": "2025-08-17", "description": "합주실 대여", "withdraw": 70000, "balance": 288500, "type": "expense" },
+  { "date": "2025-09-05", "description": "후원금 입금", "deposit": 200000, "balance": 488500, "type": "income" },
+  { "date": "2025-09-18", "description": "장비 구매(케이블)", "withdraw": 38000, "balance": 450500, "type": "expense" },
+  { "date": "2025-10-01", "description": "도메인/호스팅", "withdraw": 22000, "balance": 428500, "type": "expense" },
+  { "date": "2025-10-15", "description": "회의 간식", "withdraw": 18000, "balance": 410500, "type": "expense" }
+]

@@ -68,34 +68,49 @@ export default function Header({
 
   useEffect(() => { if (createOpen) createInputRef.current?.focus(); }, [createOpen]);
 
-  // 초기 로드: 로컬 저장소에 있는 그룹/선택값을 병합 및 반영
+  // 초기 로드: 기본 그룹 시드(그룹1=g1, 그룹2=g2) + 병합 + URL ?group 우선 적용
   useEffect(() => {
     try {
+      // 0) 저장된 그룹 불러오기
+      let saved: Group[] = [];
       const raw = localStorage.getItem(LS_GROUPS);
       if (raw) {
-        const saved: Group[] = JSON.parse(raw);
-        setOptimisticGroups((prev) => {
-          const map = new Map<string, Group>();
-          [...prev, ...saved].forEach((g) => map.set(String(g.id), g));
-          return Array.from(map.values());
-        });
+        try { saved = JSON.parse(raw) as Group[]; } catch { saved = []; }
       }
 
-      // 1) URL ?group= 우선
-      const fromQuery = new URLSearchParams(location.search).get("group");
+      // 1) 저장된 그룹이 없으면 기본 두 개 시드
+      if (!saved || saved.length === 0) {
+        saved = [
+          { id: 'g1', name: '그룹 1' },
+          { id: 'g2', name: '그룹 2' },
+        ];
+        try { localStorage.setItem(LS_GROUPS, JSON.stringify(saved)); } catch {}
+      }
+
+      // 2) 상태 병합 반영 (props.groups와 optimistic 병합 로직에 합류)
+      setOptimisticGroups((prev) => {
+        const map = new Map<string, Group>();
+        [...prev, ...saved].forEach((g) => map.set(String(g.id), g));
+        return Array.from(map.values());
+      });
+
+      // 3) URL의 ?group= 이 있으면 최우선 적용
+      const fromQuery = new URLSearchParams(location.search).get('group');
       if (fromQuery) {
         try { localStorage.setItem(LS_SELECTED, String(fromQuery)); } catch {}
         if (!selectedGroupId || String(selectedGroupId) !== String(fromQuery)) {
-          onChangeGroup?.(fromQuery);
+          onChangeGroup?.(fromQuery as any);
         }
-        return; // URL 값이 있으면 우선 적용하고 종료
+        return; // URL 값 적용 완료
       }
 
-      // 2) 없으면 localStorage 사용
-      const sel = localStorage.getItem(LS_SELECTED);
-      if (!selectedGroupId && sel) {
-        onChangeGroup?.(sel);
+      // 4) URL이 비어 있으면 localStorage 선택 또는 g1을 기본값으로 저장/적용
+      const sel = localStorage.getItem(LS_SELECTED) || 'g1';
+      try { localStorage.setItem(LS_SELECTED, sel); } catch {}
+      if (!selectedGroupId || String(selectedGroupId) !== String(sel)) {
+        onChangeGroup?.(sel as any);
       }
+      // 실제 URL에 붙이는 것은 아래 별도 effect에서 수행
     } catch {}
   }, []);
 
