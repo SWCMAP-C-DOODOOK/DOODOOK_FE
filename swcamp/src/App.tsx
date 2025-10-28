@@ -8,6 +8,7 @@ import Transaction from "./screens/Transaction";
 import Register from "./screens/Register";
 import Settings from "./screens/Settings";
 import AuthCallback from "./screens/AuthCallback";
+import UserSettings from "./screens/UserSettings";
 
 function RequireAuth() {
     const token = localStorage.getItem("access_token");
@@ -34,6 +35,7 @@ export default function App() {
                 <Route path="/transaction" element={<Transaction />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/usersettings" element={<UserSettings />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

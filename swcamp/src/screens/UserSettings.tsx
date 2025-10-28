@@ -119,7 +119,7 @@ function HomePanel({ onOpen }: { onOpen: (v: View) => void }) {
   const [isEditing, setIsEditing] = useState(false);
 
   const nameRef = useRef<HTMLSpanElement>(null);
-  const phoneRef = useRef<HTMLSpanElement>(null);
+  const phoneRef = useRef<HTMLDivElement>(null);
 
   const placeCaretToEnd = (el: HTMLElement | null) => {
     if (!el) return;
@@ -135,10 +135,8 @@ function HomePanel({ onOpen }: { onOpen: (v: View) => void }) {
   const toggleEdit = () => {
     if (!isEditing) {
       setIsEditing(true);
-      // 편집 모드 진입: 이름과 번호 모두 편집 가능 + 커서는 이름 끝
-      requestAnimationFrame(() => {
-        placeCaretToEnd(nameRef.current); // ← 번호로 포커스 주려면 phoneRef로 바꾸세요.
-      });
+      // 편집 모드 진입: 이름/번호 모두 편집 가능 + 커서는 이름 끝
+      requestAnimationFrame(() => placeCaretToEnd(nameRef.current));
     } else {
       // 저장
       const newName = nameRef.current?.textContent?.trim() || name;
@@ -152,24 +150,51 @@ function HomePanel({ onOpen }: { onOpen: (v: View) => void }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: 24 }}>
       <div>
-        <Tile label="회비 납부 현황" onClick={() => onOpen("duesStatus")} />
+        <Tile label="회비 납부 현황" onClick={() => onOpen("duesStatus" as View)} />
         <Tile label="그룹 관리" onClick={() => onOpen("groups")} />
       </div>
 
       <div>
         <div className="card" style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: 24 }}>
           <div
+  style={{
+    width: 160,
+    height: 160,
+    borderRadius: "50%",
+    background: "#a78bfa",
+    boxShadow: "0 8px 30px rgba(167,139,250,.35)",
+    marginBottom: 20,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  }}
+>
+  <div
+    style={{
+      fontWeight: 1000,
+      letterSpacing: "0.35em",
+      color: "#fff",
+      fontSize: 16,
+      textAlign: "center",
+      userSelect: "none",
+    }}
+  >
+    DOODOOK
+  </div>
+</div>
+
+          <div
             style={{
-              width: 160,
-              height: 160,
-              borderRadius: "50%",
-              background: "#a78bfa",
-              boxShadow: "0 12px 40px rgba(167,139,250,.35)",
-              marginBottom: 24,
+              fontSize: 28,
+              fontWeight: 900,
+              letterSpacing: ".02em",
+              marginBottom: 6,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
             }}
-          />
-          <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: ".02em", marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
-            {/* 이름 (contentEditable) */}
+          >
+            {/* 이름 (편집 가능) */}
             <span
               ref={nameRef}
               contentEditable={isEditing}
@@ -185,7 +210,9 @@ function HomePanel({ onOpen }: { onOpen: (v: View) => void }) {
             >
               {name}
             </span>
+
             <span style={{ fontSize: 16, fontWeight: 700, color: "#6b7280", marginLeft: 6 }}>회원</span>
+
             <button
               onClick={toggleEdit}
               className="btn"
@@ -196,14 +223,14 @@ function HomePanel({ onOpen }: { onOpen: (v: View) => void }) {
             </button>
           </div>
 
-          {/* 전화번호 (contentEditable) */}
+          {/* 전화번호 (편집 가능) */}
           <div
-            ref={phoneRef as any}
+            ref={phoneRef}
             contentEditable={isEditing}
             suppressContentEditableWarning
             aria-label="전화번호 편집"
             tabIndex={0}
-            onFocus={() => placeCaretToEnd(phoneRef.current!)}
+            onFocus={() => placeCaretToEnd(phoneRef.current)}
             style={{
               color: "#374151",
               fontWeight: 600,
@@ -217,13 +244,6 @@ function HomePanel({ onOpen }: { onOpen: (v: View) => void }) {
           </div>
 
           <div style={{ color: "#374151", fontWeight: 600, marginTop: 2 }}>user1@example.com</div>
-
-          <div className="section-label" style={{ width: "100%", marginTop: 24 }}>
-            소속 그룹
-          </div>
-          <div className="card" style={{ width: "100%", padding: 14, textAlign: "left", fontWeight: 800 }}>
-            SW Camp_teamC
-          </div>
         </div>
       </div>
     </div>

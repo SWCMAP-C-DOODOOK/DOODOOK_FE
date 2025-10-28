@@ -195,7 +195,32 @@ function HomePanel({ onOpen }: { onOpen: (v: View) => void }) {
 
       <div>
         <div className="card" style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: 24 }}>
-          <div style={{ width: 160, height: 160, borderRadius: "50%", background: "#a78bfa", boxShadow: "0 12px 40px rgba(167,139,250,.35)", marginBottom: 24 }} />
+          <div
+  style={{
+    width: 160,
+    height: 160,
+    borderRadius: "50%",
+    background: "#a78bfa",
+    boxShadow: "0 8px 30px rgba(167,139,250,.35)",
+    marginBottom: 20,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  }}
+>
+  <div
+    style={{
+      fontWeight: 1000,
+      letterSpacing: "0.35em",
+      color: "#fff",
+      fontSize: 16,
+      textAlign: "center",
+      userSelect: "none",
+    }}
+  >
+    DOODOOK
+  </div>
+</div>
 
           <div
             style={{
@@ -258,8 +283,6 @@ function HomePanel({ onOpen }: { onOpen: (v: View) => void }) {
           </div>
 
           <div style={{ color: "#374151", fontWeight: 600, marginTop: 2 }}>user1@example.com</div>
-          <div className="section-label" style={{ width: "100%", marginTop: 24 }}>소속 그룹</div>
-          <div className="card" style={{ width: "100%", padding: 14, textAlign: "left", fontWeight: 800 }}>SW Camp_teamC</div>
         </div>
       </div>
     </div>
