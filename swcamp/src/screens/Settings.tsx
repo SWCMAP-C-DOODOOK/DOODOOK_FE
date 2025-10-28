@@ -2,7 +2,7 @@ import "./Main.css";
 import Sidebar from "../screens/Sidebar";
 import Footer from "../screens/Footer";
 import Header from "../screens/Header";
-import { useState, type ReactNode } from "react";
+import { useState, useRef, type ReactNode } from "react";
 
 type View = "home" | "members" | "dues" | "groups";
 
@@ -152,22 +152,114 @@ export default function Settings() {
 }
 
 function HomePanel({ onOpen }: { onOpen: (v: View) => void }) {
+  const [name, setName] = useState("이○○");
+  const [phone, setPhone] = useState("010-0000-0000");
+  const [isEditing, setIsEditing] = useState(false);
+
+  const nameRef = useRef<HTMLSpanElement>(null);
+  const phoneRef = useRef<HTMLDivElement>(null);
+
+  const placeCaretToEnd = (el: HTMLElement | null) => {
+    if (!el) return;
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+    el.focus();
+  };
+
+  const toggleEdit = () => {
+    if (!isEditing) {
+      setIsEditing(true);
+      // 편집 모드 진입: 이름/번호 모두 편집 가능 + 커서는 이름 끝
+      requestAnimationFrame(() => placeCaretToEnd(nameRef.current));
+    } else {
+      // 저장
+      const newName = nameRef.current?.textContent?.trim() || name;
+      const newPhone = phoneRef.current?.textContent?.trim() || phone;
+      setName(newName);
+      setPhone(newPhone);
+      setIsEditing(false);
+    }
+  };
+
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: 24 }}>
       <div>
-        <Tile label="회원 관리" onClick={() => onOpen("members")} />
-        <Tile label="회비 관리" onClick={() => onOpen("dues")} />
+        <Tile label="회원 관리" onClick={() => onOpen("members" as View)} />
+        <Tile label="회비 관리" onClick={() => onOpen("dues" as View)} />
         <Tile label="그룹 관리" onClick={() => onOpen("groups")} />
       </div>
 
       <div>
         <div className="card" style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: 24 }}>
           <div style={{ width: 160, height: 160, borderRadius: "50%", background: "#a78bfa", boxShadow: "0 12px 40px rgba(167,139,250,.35)", marginBottom: 24 }} />
-          <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: ".02em", marginBottom: 6 }}> 이○○ <span style={{ fontSize: 16, fontWeight: 700, color: "#6b7280", marginLeft: 6 }}>관리자</span></div>
-          <div style={{ color: "#374151", fontWeight: 600, marginTop: 4 }}>010-0000-0000</div>
+
+          <div
+            style={{
+              fontSize: 28,
+              fontWeight: 900,
+              letterSpacing: ".02em",
+              marginBottom: 6,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            {/* 이름 (편집 가능) */}
+            <span
+              ref={nameRef}
+              contentEditable={isEditing}
+              suppressContentEditableWarning
+              aria-label="이름 편집"
+              tabIndex={0}
+              onFocus={() => placeCaretToEnd(nameRef.current)}
+              style={{
+                outline: isEditing ? "2px dashed #a78bfa" : "none",
+                borderRadius: 6,
+                padding: isEditing ? "0 4px" : 0,
+              }}
+            >
+              {name}
+            </span>
+
+            <span style={{ fontSize: 16, fontWeight: 700, color: "#6b7280", marginLeft: 6 }}>관리자</span>
+
+            <button
+              onClick={toggleEdit}
+              className="btn"
+              style={{ padding: "6px 10px", marginLeft: 4, whiteSpace: "nowrap" }}
+              aria-label={isEditing ? "이름/번호 저장" : "이름/번호 수정"}
+            >
+              {isEditing ? "저장" : "수정"}
+            </button>
+          </div>
+
+          {/* 전화번호 (편집 가능) */}
+          <div
+            ref={phoneRef}
+            contentEditable={isEditing}
+            suppressContentEditableWarning
+            aria-label="전화번호 편집"
+            tabIndex={0}
+            onFocus={() => placeCaretToEnd(phoneRef.current)}
+            style={{
+              color: "#374151",
+              fontWeight: 600,
+              marginTop: 4,
+              outline: isEditing ? "2px dashed #a78bfa" : "none",
+              borderRadius: 6,
+              padding: isEditing ? "0 4px" : 0,
+            }}
+          >
+            {phone}
+          </div>
+
           <div style={{ color: "#374151", fontWeight: 600, marginTop: 2 }}>user1@example.com</div>
           <div className="section-label" style={{ width: "100%", marginTop: 24 }}>소속 그룹</div>
-          <div className="card" style={{ width: "100%", padding: 14, textAlign: "left", fontWeight: 800 }}> SW Camp_teamC </div>
+          <div className="card" style={{ width: "100%", padding: 14, textAlign: "left", fontWeight: 800 }}>SW Camp_teamC</div>
         </div>
       </div>
     </div>
