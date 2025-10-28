@@ -230,7 +230,7 @@ function HomePanel({ onOpen }: { onOpen: (v: View) => void }) {
             <button
               onClick={toggleEdit}
               className="btn"
-              style={{ padding: "6px 10px", marginLeft: 4, whiteSpace: "nowrap" }}
+              style={{ padding: "6px 4px", marginLeft: 4, whiteSpace: "nowrap" }}
               aria-label={isEditing ? "이름/번호 저장" : "이름/번호 수정"}
             >
               {isEditing ? "저장" : "수정"}
