@@ -4,7 +4,39 @@ import Footer from "../screens/Footer";
 import Header from "../screens/Header";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+function getAccessToken(): string | null {
+  try {
+    return (
+      localStorage.getItem("access_token") ||
+      sessionStorage.getItem("access_token") ||
+      null
+    );
+  } catch {
+    return null;
+  }
+}
+
+function withAuth(init: RequestInit = {}): RequestInit {
+  const token = getAccessToken();
+  const headers = new Headers(init.headers || undefined);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  return { ...init, headers };
+}
+
 type ReceiptUploadResponse = { url: string };
+type OcrReceiptResponse = {
+  date?: string;
+  time?: string;
+  amount?: number | string;
+  method?: string;
+  merchant?: string;
+  memo?: string;
+  // 오류 응답용(백엔드에서 내려줄 수 있는 키들 대응)
+  error?: string;
+  detail?: string;
+  message?: string;
+  code?: string | number;
+};
 
 function formatKrwInput(v: string): { raw: string; num: number } {
   // 숫자만 남기고 천단위 콤마 포맷팅
@@ -27,6 +59,8 @@ export default function Register() {
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrMsg, setOcrMsg] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,8 +118,11 @@ export default function Register() {
       return;
     }
     setFile(f);
+    setOcrMsg(null);
+    setError(null);
     const url = URL.createObjectURL(f);
     setFilePreview(url);
+    recognizeReceipt(f);
   }
 
   async function uploadReceipt(): Promise<string | null> {
@@ -94,11 +131,10 @@ export default function Register() {
       setUploading(true);
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/v1/uploads/receipt", {
-        method: "POST",
-        body: fd,
-        credentials: "include",
-      });
+      const res = await fetch(
+        "/api/v1/uploads/receipt",
+        withAuth({ method: "POST", body: fd, credentials: "include" })
+      );
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as ReceiptUploadResponse;
       return data.url;
@@ -107,6 +143,62 @@ export default function Register() {
       return filePreview;
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function recognizeReceipt(f: File) {
+    try {
+      setOcrLoading(true);
+      setOcrMsg(null);
+      const fd = new FormData();
+      fd.append("file", f);
+      // 백엔드 OCR 엔드포인트 (Django: /api/ocr/receipt)
+      const res = await fetch(
+        "/api/ocr/receipt",
+        withAuth({ method: "POST", body: fd, credentials: "include" })
+      );
+
+      let payload: any = null;
+      let text = "";
+      try {
+        payload = await res.clone().json();
+      } catch {
+        try { text = await res.text(); } catch { /* ignore */ }
+      }
+
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          setOcrMsg("OCR 인식 실패: 로그인(인증 토큰)이 필요합니다. 다시 로그인 후 시도해주세요.");
+          return;
+        }
+        const reason =
+          (payload && (payload.detail || payload.error || payload.message)) ||
+          text || `${res.status} ${res.statusText || "Error"}`;
+        setOcrMsg(`OCR 인식 실패: ${reason}`);
+        return;
+      }
+
+      const data = (payload ?? {}) as OcrReceiptResponse;
+
+      // 인식 값으로 폼 자동 채우기 (수정 가능)
+      if (data.date) setDate(data.date);
+      if (data.time) setTime(data.time);
+      if (data.amount !== undefined && data.amount !== null) {
+        setAmountText(formatKrwInput(String(data.amount)).raw);
+      }
+      if (data.method) setMethod(data.method);
+      if (data.merchant) setMerchant(data.merchant);
+      if (data.memo) setMemo(data.memo);
+
+      // 백엔드가 오류 키를 내려줬다면 메시지로 표시
+      if (data.error || data.detail || data.message) {
+        setOcrMsg(`OCR 인식 메시지: ${data.detail || data.error || data.message}`);
+      }
+    } catch (e: any) {
+      console.warn("OCR 인식 실패", e);
+      setOcrMsg(`OCR 인식 실패: ${e?.message ?? "알 수 없는 오류"}`);
+    } finally {
+      setOcrLoading(false);
     }
   }
 
@@ -139,12 +231,15 @@ export default function Register() {
         receiptUrl,
       };
 
-      const res = await fetch("/api/v1/transactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        "/api/v1/transactions",
+        withAuth({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        })
+      );
       if (!res.ok) throw new Error("저장에 실패했습니다.");
 
       // 성공 → 임시저장 제거 후 목록으로
@@ -183,7 +278,7 @@ export default function Register() {
       <Sidebar />
 
       <section className="content">
-        <Header team="SW Camp_teamC" />
+        <Header />
 
         {/* 업로드 영역 */}
         <div ref={dropRef} className="card uploader">
@@ -211,7 +306,24 @@ export default function Register() {
                 <button className="btn" onClick={() => { setFile(null); setFilePreview(null); }}>
                   제거
                 </button>
-                <span className="muted">{uploading ? "업로드 중…" : "업로드는 등록 시 처리됩니다."}</span>
+                <button
+                  className="btn btn-primary"
+                  style={{ marginLeft: 8 }}
+                  disabled={!file || ocrLoading}
+                  onClick={() => {
+                    if (file) recognizeReceipt(file);
+                  }}
+                >
+                  {ocrLoading ? "자동 인식 중…" : "자동 인식"}
+                </button>
+                <span className="muted" style={{ marginLeft: 8 }}>
+                  {ocrLoading ? "영수증 인식 중…" : uploading ? "업로드 중…" : "업로드는 등록 시 처리됩니다."}
+                </span>
+                {ocrMsg && (
+                  <div className="error" style={{ marginTop: 8 }}>
+                    {ocrMsg}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -266,7 +378,7 @@ export default function Register() {
             <textarea
               className="textarea"
               rows={3}
-              placeholder="비고를 입력하세요."
+              placeholder="메모를 입력하세요."
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
             />
@@ -283,6 +395,7 @@ export default function Register() {
             </button>
           </div>
         </div>
+        <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>*은 필수 입력항목임.</div>
         <Footer />
       </section>
     </div>

@@ -1,4 +1,6 @@
+// 월컴 랜딩 페이지
 export default function Welcome() {
+    // goLogin 함수로 /login url로 이동
     const goLogin = () => (window.location.href = "/login");
     return (
         <div className="welcome-page">

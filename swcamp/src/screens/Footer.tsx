@@ -1,5 +1,6 @@
 import React, { useEffect, useState, type CSSProperties } from "react";
 
+// 페이지 하단 바
 export interface FooterProps {
   bugUrl?: string;
   aboutHref?: string;
@@ -9,6 +10,7 @@ export interface FooterProps {
   policyEndpoint?: string;
 }
 
+// CSS 스타일 설정
 const footerStyle: CSSProperties = {
   marginTop: "24px",
   padding: "16px 24px",
@@ -22,19 +24,16 @@ const footerStyle: CSSProperties = {
   flexWrap: "wrap",
   background: "transparent",
 };
-
 const linksStyle: CSSProperties = {
   display: "inline-flex",
   gap: "14px",
   alignItems: "center",
   flexWrap: "wrap",
 };
-
 const linkStyle: CSSProperties = {
   color: "inherit",
   textDecoration: "none",
 };
-
 const overlayStyle: CSSProperties = {
   position: "fixed",
   inset: 0,
@@ -44,7 +43,6 @@ const overlayStyle: CSSProperties = {
   justifyContent: "center",
   zIndex: 60,
 };
-
 const modalStyle: CSSProperties = {
   width: "min(920px, 92vw)",
   maxHeight: "80vh",
@@ -55,7 +53,6 @@ const modalStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
 };
-
 const headerStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -65,14 +62,12 @@ const headerStyle: CSSProperties = {
   borderBottom: "1px solid #e5e7eb",
   background: "#fafafa",
 };
-
 const selectStyle: CSSProperties = {
   border: "1px solid #e5e7eb",
   borderRadius: 8,
   padding: "8px 10px",
   background: "#fff",
 };
-
 const modalBodyStyle: CSSProperties = {
   padding: 18,
   overflow: "auto",
@@ -80,6 +75,7 @@ const modalBodyStyle: CSSProperties = {
   color: "#111827",
 };
 
+// 이용약관 및 정책
 type PolicyType = "privacy" | "terms" | "youth";
 
 function PolicyModal({ open, onClose, endpoint }: { open: boolean; onClose: () => void; endpoint: string; }) {
@@ -130,6 +126,7 @@ function PolicyModal({ open, onClose, endpoint }: { open: boolean; onClose: () =
 }
 
 function Footer({
+  // Bug Report & About Us
   bugUrl = "https://github.com/SWCMAP-C-DOODOOK/DOODOOK_FE/issues",
   aboutHref = "https://www.notion.so/SW-C-26b02d9f7737812aae4fdc97056fef78",
   rightText = "© DOODOOK",

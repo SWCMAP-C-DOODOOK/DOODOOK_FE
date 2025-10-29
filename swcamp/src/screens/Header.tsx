@@ -1,41 +1,39 @@
 import { useEffect, useMemo, useRef, useState, CSSProperties } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
+// 페이지 상단 바
+// 그룹 아이디, 그룹 이름으로 구분
 export type Group = {
   id: string | number;
   name: string;
   iconUrl?: string;
 };
 
+// 그룹 선택 드롭다운
 type HeaderProps = {
-  /** 과거 버전 호환용: 선택된 팀 텍스트 */
-  team?: string;
-  /** 선택 가능한 그룹 목록 */
+  // 그룹 목록
   groups?: Group[];
-  /** 현재 선택된 그룹 id */
+  // 선택된 그룹
   selectedGroupId?: Group["id"];
-  /** 그룹 변경 시 상위에서 페이지 전체 상태를 바꾸도록 콜백 */
+  //그룹별 화면 전환
   onChangeGroup?: (id: Group["id"]) => void;
-  /** 드롭다운 하단: 그룹 생성 */
+  // 그룹 생성
   onCreateGroup?: (name: string) => Promise<Group | { id: Group["id"], name: string } | void>;
-  /** 드롭다운 하단: 멤버 초대 */
+  // 초대 링크 생성
   onInviteMember?: (groupId: Group["id"]) => Promise<string> | string | void;
-  /** 알림 버튼(우측 종) 클릭 */
-  onBellClick?: () => void;
 };
 
+// 헤더 함수
 export default function Header({
-  team,
   groups = [],
   selectedGroupId,
   onChangeGroup,
   onCreateGroup,
   onInviteMember,
-  onBellClick,
 }: HeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  // 내부 즉시 반영용 로컬 선택 id(부모 반영 전 라벨이 늦게 바뀌는 문제 방지)
+  // 그룹 변경 시 즉시 화면 전환
   const [localSelectedId, setLocalSelectedId] = useState<Group["id"] | undefined>(selectedGroupId);
   useEffect(() => { setLocalSelectedId(selectedGroupId); }, [selectedGroupId]);
   const LS_GROUPS = "doodook:groups";
@@ -47,7 +45,7 @@ export default function Header({
   const [inviteOpen, setInviteOpen] = useState(false);
   const createInputRef = useRef<HTMLInputElement | null>(null);
 
-  // 새로 생성된 그룹을 일시적으로 보관(부모가 갱신해올 때까지 낙관적 반영)
+  // 새로 생성된 그룹을 일시적으로 보관
   const [optimisticGroups, setOptimisticGroups] = useState<Group[]>([]);
 
   // props의 groups와 로컬에 추가한 optimisticGroups를 아이디 기준으로 병합
@@ -68,7 +66,7 @@ export default function Header({
 
   useEffect(() => { if (createOpen) createInputRef.current?.focus(); }, [createOpen]);
 
-  // 초기 로드: 기본 그룹 시드(그룹1=g1, 그룹2=g2) + 병합 + URL ?group 우선 적용
+  // 초기 로드: 기본 그룹 시드(그룹1 = g1, 그룹2 = g2) + 병합 + URL ?group 우선 적용
   useEffect(() => {
     try {
       // 0) 저장된 그룹 불러오기
@@ -101,7 +99,7 @@ export default function Header({
         if (!selectedGroupId || String(selectedGroupId) !== String(fromQuery)) {
           onChangeGroup?.(fromQuery as any);
         }
-        return; // URL 값 적용 완료
+        return;
       }
 
       // 4) URL이 비어 있으면 localStorage 선택 또는 g1을 기본값으로 저장/적용
@@ -192,6 +190,7 @@ export default function Header({
     }
   };
 
+  // 그룹 아이디 붙여서 초대 링크 생성
   const handleInvite = async () => {
     const id = selected?.id;
     if (id == null) { alert("선택된 그룹이 없습니다."); return; }
@@ -206,11 +205,11 @@ export default function Header({
     setInviteOpen(true);
   };
 
+  // 초대 링크 복사 버튼
   const copyInvite = async () => {
     if (!inviteLink) return;
     try {
       await navigator.clipboard.writeText(inviteLink);
-      // brief visual feedback via title change
       alert("초대 링크가 복사되었습니다.");
     } catch {
       const ta = document.createElement('textarea');
@@ -219,7 +218,7 @@ export default function Header({
     }
   };
 
-  const label = selected?.name ?? team ?? "그룹 없음";
+  const label = selected?.name ?? "그룹 없음";
 
   return (
       <>
@@ -264,10 +263,6 @@ export default function Header({
           </button>
         </div>
       </div>
-
-      {onBellClick && (
-        <button className="bell" aria-label="알림" onClick={onBellClick} />
-      )}
     </header>
 
 

@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 
+// 페이지 좌측 사이드바
 export default function Sidebar() {
     const item = (to: string, label: string, svgPath?: string) => {
       return (
@@ -41,6 +42,7 @@ export default function Sidebar() {
               boxSizing: "border-box",
             }}
         >
+
             <div className="sidebar-brand">DOODOOK</div>
             <nav className="nav" style={{ flex: "1 1 auto", overflow: "auto" }}>
                 {item(
