@@ -32,6 +32,21 @@ function VBar({ label, value, color }: { label: string; value: number; color: st
   );
 }
 
+function BarPair({ label, income, expense, max }: { label: string; income: number; expense: number; max: number }) {
+  const clamp = (n: number) => (n <= 0 || !isFinite(n) ? 0 : n);
+  const incPct = max > 0 ? Math.min(100, (clamp(income) / max) * 100) : 0;
+  const expPct = max > 0 ? Math.min(100, (clamp(expense) / max) * 100) : 0;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 120 }}>
+        <div title={`수입: ${income.toLocaleString("ko-KR")}원`} style={{ width: 12, height: `${incPct}%`, background: "#16a34a", borderRadius: 4 }} />
+        <div title={`지출: ${expense.toLocaleString("ko-KR")}원`} style={{ width: 12, height: `${expPct}%`, background: "#ef4444", borderRadius: 4 }} />
+      </div>
+      <div className="vbar-label">{label}</div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const location = useLocation();
 
@@ -53,11 +68,7 @@ export default function Dashboard() {
 
   const [rows, setRows] = useState<Txn[]>([]);
   const [balance, setBalance] = useState<number>(0);
-  const [account, setAccount] = useState<AccountMeta>({
-    bank: "카카오뱅크",
-    name: "SWC모임통장",
-    number: "*** ***** 2598",
-  });
+  const [account, setAccount] = useState<AccountMeta | null>(null);
 
   // Utility: fetch JSON with graceful failure
   const tryFetch = async <T,>(path: string): Promise<T | null> => {
@@ -82,10 +93,10 @@ export default function Dashboard() {
       }
       // 2) demo mapping (g1/g2)
       if (!data && gid) {
-        if (gid === "g1" || gid.endsWith("1")) {
+        if (gid === "g1") {
           data = (await tryFetch<Txn[]>("/demo_g1_transactions.json"))
             ?? (await tryFetch<Txn[]>("/mock/demo_g1_transactions.json"));
-        } else if (gid === "g2" || gid.endsWith("2")) {
+        } else if (gid === "g2") {
           data = (await tryFetch<Txn[]>("/demo_g2_transactions.json"))
             ?? (await tryFetch<Txn[]>("/mock/demo_g2_transactions.json"));
         }
@@ -130,19 +141,21 @@ export default function Dashboard() {
         meta = await tryFetch<AccountMeta>(`/mock/groups/${encodeURIComponent(gid)}/account.json`);
 
         // 2) demo mappings for g1 / g2 (and ids that end with 1 or 2)
-        if (!meta && (gid === "g1" || gid.endsWith("1"))) {
+        if (!meta && gid === "g1") {
           meta = (await tryFetch<AccountMeta>("/mock/demo_g1_account.json"))
               ?? (await tryFetch<AccountMeta>("/demo_g1_account.json"));
         }
-        if (!meta && (gid === "g2" || gid.endsWith("2"))) {
+        if (!meta && gid === "g2") {
           meta = (await tryFetch<AccountMeta>("/mock/demo_g2_account.json"))
               ?? (await tryFetch<AccountMeta>("/demo_g2_account.json"));
         }
       }
 
-      // 3) final fallback (if nothing was found)
+      // 3) if nothing was found, mark as missing (show placeholder UI)
       if (!meta) {
-        meta = { bank: "카카오뱅크", name: "모임통장", number: "" };
+        if (!alive) return;
+        setAccount(null);
+        return;
       }
 
       if (!alive) return;
@@ -157,6 +170,34 @@ export default function Dashboard() {
     const desc = [...rows].sort((a, b) => b.date.localeCompare(a.date));
     return desc.slice(0, 7);
   }, [rows]);
+
+  const monthlyStats = useMemo(() => {
+    // Build YYYY-MM -> totals
+    const map = new Map<string, { y: number; m: number; label: string; income: number; expense: number }>();
+    for (const t of rows) {
+      if (!t?.date) continue;
+      const y = Number(t.date.slice(0, 4));
+      const m = Number(t.date.slice(5, 7));
+      const key = `${y}-${String(m).padStart(2, "0")}`;
+      const label = `${String(y).slice(2)}.${String(m).padStart(2, "0")}`; // e.g., 25.03
+      if (!map.has(key)) map.set(key, { y, m, label, income: 0, expense: 0 });
+      const rec = map.get(key)!;
+      if (typeof t.deposit === "number" && t.deposit > 0) rec.income += t.deposit;
+      if (typeof t.withdraw === "number" && t.withdraw > 0) rec.expense += t.withdraw;
+    }
+    // Sort by year, month
+    return Array.from(map.values()).sort((a, b) => (a.y !== b.y ? a.y - b.y : a.m - b.m));
+  }, [rows]);
+
+  const monthsToShow = useMemo(() => {
+    // 최근 5개월만 표시
+    return monthlyStats.slice(-5);
+  }, [monthlyStats]);
+
+  const monthlyMax = useMemo(() => {
+    if (monthsToShow.length === 0) return 0;
+    return monthsToShow.reduce((mx, r) => Math.max(mx, r.income, r.expense), 0);
+  }, [monthsToShow]);
 
   const fmtAmount = (t: Txn) => {
     const inc = typeof t.deposit === "number" && t.deposit! > 0;
@@ -188,27 +229,77 @@ export default function Dashboard() {
           {/* Balance card */}
           <div className="card balance">
             <div className="balance-amount">{balance.toLocaleString("ko-KR")} 원</div>
-            <div className="balance-card">
-              <div>
-                <div className="bank">{account.bank}</div>
-                <div className="acc">{account.name}</div>
-                <div className="acc-sub">{account.number}</div>
+            {account ? (
+              <div className="balance-card">
+                <div>
+                  <div className="bank">{account.bank}</div>
+                  <div className="acc">{account.name}</div>
+                  <div className="acc-sub">{account.number}</div>
+                </div>
+                <div className="chip" />
               </div>
-              <div className="chip" />
-            </div>
+            ) : (
+              <div
+                className="account-placeholder"
+                style={{
+                  background: "#e5e7eb",
+                  width: "100%",
+                  minHeight: 90,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 12,
+                  borderRadius: 12,
+                }}
+              >
+                <button
+                  type="button"
+                  aria-label="add account"
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 9999,
+                    border: "none",
+                    background: "white",
+                    fontSize: 28,
+                    lineHeight: 1,
+                    cursor: "pointer",
+                  }}
+                >
+                  +
+                </button>
+                <div style={{ color: "#374151", fontWeight: 600 }}>계좌를 등록하세요</div>
+              </div>
+            )}
           </div>
 
           {/* Chart card */}
           <div className="card chart">
-            <div className="section-title">
+            <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <span className="muted">Monthly</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ width: 10, height: 10, background: "#16a34a", borderRadius: 2 }} /> 수입
+                </span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ width: 10, height: 10, background: "#ef4444", borderRadius: 2 }} /> 지출
+                </span>
+              </div>
             </div>
-            <div className="chart-bars">
-              <VBar label="25.03" value={55} color="#a78bfa" />
-              <VBar label="25.04" value={30} color="#f472b6" />
-              <VBar label="25.05" value={95} color="#f472b6" />
-              <VBar label="25.06" value={35} color="#f472b6" />
-              <VBar label="25.07" value={18} color="#a78bfa" />
+            <div
+              className="chart-bars"
+              style={{ display: "flex", alignItems: "flex-end", gap: 12, minHeight: 160, width: "100%" }}
+            >
+              {monthsToShow.length === 0 ? (
+                <div style={{ color: "#666", padding: 12 }}>표시할 데이터가 없습니다.</div>
+              ) : (
+                monthsToShow.map((m) => (
+                  <div key={m.label} style={{ flex: "1 1 0", display: "flex", justifyContent: "center" }}>
+                    <BarPair label={m.label} income={m.income} expense={m.expense} max={monthlyMax} />
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
