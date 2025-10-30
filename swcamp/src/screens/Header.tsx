@@ -67,6 +67,36 @@ export default function Header({
 
   useEffect(() => { if (createOpen) createInputRef.current?.focus(); }, [createOpen]);
 
+  // URL이나 localStorage에 저장된 선택값을 항상 드롭다운에 반영
+  useEffect(() => {
+    const qs = new URLSearchParams(location.search);
+    const fromQuery = qs.get('group');
+
+    if (fromQuery) {
+      try { localStorage.setItem(LS_SELECTED, String(fromQuery)); } catch {}
+      if (String(localSelectedId ?? '') !== String(fromQuery)) {
+        setLocalSelectedId(fromQuery as any);
+      }
+      return; // 쿼리가 우선
+    }
+
+    const fromLS = localStorage.getItem(LS_SELECTED);
+    if (fromLS && String(localSelectedId ?? '') !== String(fromLS)) {
+      setLocalSelectedId(fromLS as any);
+    }
+  }, [location.search]);
+
+  // 다른 탭/컴포넌트에서 LS_SELECTED가 바뀔 때도 동기화
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === LS_SELECTED && e.newValue && String(localSelectedId ?? '') !== String(e.newValue)) {
+        setLocalSelectedId(e.newValue as any);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [localSelectedId]);
+
   // 초기 로드: 기본 그룹 시드(그룹1 = g1, 그룹2 = g2) + 병합 + URL ?group 우선 적용
   useEffect(() => {
     try {

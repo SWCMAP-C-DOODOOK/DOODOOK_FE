@@ -1,3 +1,31 @@
+  /**
+   * 그룹별 시작 잔액을 찾는다.
+   * 우선순위: localStorage → /mock/demo_balance.json → 기본값(g1/g2)
+   */
+  async function resolveOpening(gid: string): Promise<number | undefined> {
+    if (!gid) return undefined;
+    // 1) localStorage override
+    try {
+      const v = localStorage.getItem(`doodook:opening:${gid}`);
+      if (v != null && v !== "" && !Number.isNaN(Number(v))) return Number(v);
+    } catch {}
+
+    // 2) demo_balance.json (다양한 스키마 허용)
+    try {
+      const r = await fetch("/mock/demo_balance.json");
+      if (r.ok) {
+        const obj: any = await r.json();
+        let entry: any = obj?.groups?.[gid] ?? obj?.[gid] ?? obj; // groups 우선, 그다음 루트, 마지막 단일 객체
+        if (typeof entry === "number") return entry;
+        const val = entry?.opening ?? entry?.balance ?? entry?.start;
+        if (typeof val === "number") return val;
+      }
+    } catch {}
+
+    // 3) safe defaults for demo groups
+    const DEFAULTS: Record<string, number> = { g1: 400000, g2: 520000 };
+    return DEFAULTS[gid];
+  }
 import "./Main.css";
 import Sidebar from "../screens/Sidebar";
 import Footer from "../screens/Footer";
@@ -25,7 +53,84 @@ const MOCK: Txn[] = [
   { date: "2025-03-15", description: "상반기 회비_이OO", deposit: 100000, balance: 295000 },
 ];
 
+function mapLocalTxArray(arr: any[]): Txn[] {
+  return (Array.isArray(arr) ? arr : []).map((x: any) => {
+    const amt = typeof x.amount === "number" ? x.amount : Number(x.amount);
+    const descRaw = x.description
+      || (x.merchant ? `${x.merchant}${x.method ? ` (${x.method})` : ""}` : "등록 내역");
+    // '(신용카드)' 꼬리표는 UI에서 숨김
+    const desc = String(descRaw).replace(/\s*\(신용카드\)\s*$/u, "").trim();
+    const isIncome = x.type === "income" || (x.deposit && x.deposit > 0);
+    const t: Txn = {
+      date: x.date || "",
+      description: desc,
+      deposit: isIncome ? (amt || x.deposit) : undefined,
+      withdraw: !isIncome ? (amt || x.withdraw) : undefined,
+      balance: x.balance,
+      memo: x.memo,
+      type: isIncome ? "income" : "expense",
+    };
+    return t;
+  });
+}
+
 const krw = (n?: number) => (n == null ? "" : n.toLocaleString("ko-KR") + "원");
+
+/**
+ * 최신→과거(내림차순) 정렬된 배열에 대해 잔액을 재계산한다.
+ * `forcedOpening`이 주어지면 가장 과거 시점의 시작 잔액을 그 값으로 고정한다
+ * (예: 시작금액 400,000원). 그 후 과거→현재 방향으로 누적(입금-출금)하여
+ * 모든 행의 balance를 채운다. `forcedOpening`이 없으면 기존 앵커 방식으로
+ * (첫 번째 balance가 명시된 행을 기준으로) 계산한다.
+ */
+function recomputeBalances(sortedDesc: Txn[], forcedOpening?: number): Txn[] {
+  if (!Array.isArray(sortedDesc) || sortedDesc.length === 0) return sortedDesc;
+
+  // 과거→현재(오름차순)으로 복사
+  const ascend = sortedDesc
+    .slice()
+    .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
+
+  if (typeof forcedOpening === "number" && !Number.isNaN(forcedOpening)) {
+    // 시작 잔액을 고정(예: 400,000)
+    let running = forcedOpening;
+    for (const t of ascend) {
+      const delta = (t.deposit ?? 0) - (t.withdraw ?? 0);
+      running += delta;
+      t.balance = running;
+    }
+    return sortedDesc; // 같은 객체를 갱신했으므로 원본 참조 유지
+  }
+
+  // 기존 앵커 방식(후방 호환): 최신부터 내려오며 balance가 있는 첫 행을 기준으로 함
+  const anchor = sortedDesc.find(
+    (t) => typeof t.balance === "number" && !Number.isNaN(t.balance as number)
+  );
+  if (!anchor) return sortedDesc; // 기준이 없으면 그대로 사용
+
+  const anchorDate = anchor.date ?? "";
+
+  // anchor 시점까지의 누적 변화량(입금-출금)
+  const sumDeltaToAnchor = ascend.reduce((acc, t) => {
+    if ((t.date ?? "") <= anchorDate) {
+      const delta = (t.deposit ?? 0) - (t.withdraw ?? 0);
+      return acc + delta;
+    }
+    return acc;
+  }, 0);
+
+  // 시작 잔액 = anchor 잔액 - (anchor까지의 누적 변화량)
+  const opening = (anchor.balance ?? 0) - sumDeltaToAnchor;
+
+  let running = opening;
+  for (const t of ascend) {
+    const delta = (t.deposit ?? 0) - (t.withdraw ?? 0);
+    running += delta;
+    t.balance = running;
+  }
+
+  return sortedDesc;
+}
 
 export default function Transaction() {
   const [q, setQ] = useState("");
@@ -59,32 +164,51 @@ export default function Transaction() {
         let data: Txn[] | null = null;
         const gid = (currentGroup || "").toLowerCase();
 
-        // 1) 그룹별 표준 경로: /public/mock/groups/<groupId>/transactions.json
+        const openingFromFile = await resolveOpening(gid);
+
+        // 1) 그룹별 표준 경로 시도
         if (gid) {
           const p1 = `/mock/groups/${encodeURIComponent(gid)}/transactions.json`;
           try { data = await tryFetch(p1); } catch {}
         }
 
-        // 2) 데모 파일 매핑: g1/g2 → demo_g1/demo_g2 (루트 또는 /mock)
-        if (!data && gid) {
-          const isG1 = gid === 'g1' || gid.endsWith('1');
-          const isG2 = gid === 'g2' || gid.endsWith('2');
-          const candidate = isG1 ? '/demo_g1_transactions.json'
-                           : isG2 ? '/demo_g2_transactions.json'
-                           : '';
-          if (candidate) { try { data = await tryFetch(candidate); } catch {} }
-          if (!data && candidate) {
-            const candidate2 = candidate.replace('/demo_', '/mock/demo_');
-            try { data = await tryFetch(candidate2); } catch {}
+        // 2) 데모 그룹(g1/g2)만 예외적으로 데모 파일로 폴백
+        if (!data && gid && (gid === "g1" || gid === "g2")) {
+          const candidates = [
+            `/demo_${gid}_transactions.json`,
+            `/mock/demo_${gid}_transactions.json`,
+          ];
+          for (const c of candidates) {
+            try { data = await tryFetch(c); break; } catch {}
           }
         }
 
-        // 3) 공용 더미 파일
-        if (!data) {
-          try { data = await tryFetch('/mock/transactions.json'); } catch {}
+        // 3) 로컬 등록 내역 병합 (해당 그룹)
+        if (gid) {
+          try {
+            const raw = localStorage.getItem(`doodook:tx:${gid}`);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              const mapped = mapLocalTxArray(parsed);
+              if (mapped.length) {
+                data = [...mapped, ...(data ?? [])];
+              }
+            }
+          } catch { /* ignore */ }
         }
 
-        setRows(data ?? []); // 새 그룹(데이터 없음)은 빈 표
+        // 4) 최종 폴백: 그룹이 지정되지 않은 경우에만 공용 더미 사용
+        if (!data) {
+          if (!gid) {
+            try { data = await tryFetch('/mock/transactions.json'); } catch {}
+          } else {
+            data = []; // 새 그룹(데이터 없음) → 빈 결과
+          }
+        }
+
+        const sorted = (data ?? []).slice().sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+        const recalculated = recomputeBalances(sorted, openingFromFile);
+        setRows(recalculated);
       } catch (e: any) {
         setErr(e?.message ?? '로컬 데이터 로드 실패');
         setRows([]);
@@ -154,12 +278,12 @@ export default function Transaction() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>일자</th>
-                  <th>내역</th>
-                  <th>입금</th>
-                  <th>출금</th>
-                  <th>잔액</th>
-                  <th>비고</th>
+                  <th style={{ width: 70 }}>일자</th>
+                  <th style={{ width: 70 }}>내역</th>
+                  <th style={{ width: 70 }}>입금</th>
+                  <th style={{ width: 70 }}>출금</th>
+                  <th style={{ width: 70 }}>잔액</th>
+                  <th style={{ width: 70 }}>비고</th>
                     </tr>
               </thead>
               <tbody>
@@ -167,9 +291,9 @@ export default function Transaction() {
                   <tr key={i}>
                     <td>{t.date}</td>
                     <td>{t.description}</td>
-                    <td className="num">{t.deposit ? krw(t.deposit) : ""}</td>
-                    <td className="num">{t.withdraw ? krw(t.withdraw) : ""}</td>
-                    <td className="num">{t.balance != null ? krw(t.balance) : ""}</td>
+                    <td style={{ textAlign: "left" }}>{t.deposit ? krw(t.deposit) : ""}</td>
+                    <td style={{ textAlign: "left" }}>{t.withdraw ? krw(t.withdraw) : ""}</td>
+                    <td style={{ textAlign: "left" }}>{t.balance != null ? krw(t.balance) : ""}</td>
                     <td>{t.memo ?? ""}</td>
                   </tr>
                 ))}

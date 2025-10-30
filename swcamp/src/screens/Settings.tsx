@@ -51,6 +51,16 @@ export default function Settings() {
   const months = ["2025년 3월", "2025년 2월", "2025년 1월"];
   const [membersRows, setMembersRows] = useState<MemberRow[]>([]);
   const location = useLocation();
+  // 현재 그룹과 역할: g2 -> '회원', 그 외 -> '관리자'
+  const paramsForRole = new URLSearchParams(location.search);
+  const currentGroupId =
+    paramsForRole.get("group") ||
+    (typeof window !== "undefined"
+      ? (localStorage.getItem("doodook:selectedGroupId") ||
+         localStorage.getItem("selectedGroupId"))
+      : null) ||
+    "g1";
+  const role = currentGroupId === "g2" ? "회원" : "관리자";
   const [groupMeta, setGroupMeta] = useState<GroupMeta[]>(readGroups());
   const [memberStats, setMemberStats] = useState<Record<string, { count: number; rep: string }>>({});
 
@@ -151,12 +161,12 @@ export default function Settings() {
         <Header />
 
         {view === "home" && (
-          <HomePanel onOpen={setView} />
+          <HomePanel onOpen={setView} role={role} />
         )}
 
-        {view === "members" && (
+        {view === "members" && role === "관리자" && (
           <DetailShell title="회원 관리" onBack={() => setView("home")}
-            rightBadge={<RightBadge name="이○○" role="관리자" />}
+            rightBadge={<RightBadge name="이○○" role={role} />}
             filters={<FilterBar groups={groups} months={months} />}
           >
             <table className="table">
@@ -257,7 +267,7 @@ export default function Settings() {
   );
 }
 
-function HomePanel({ onOpen }: { onOpen: (v: View) => void }) {
+function HomePanel({ onOpen, role }: { onOpen: (v: View) => void; role: string }) {
   const [name, setName] = useState("이○○");
   const [phone, setPhone] = useState("010-0000-0000");
   const [isEditing, setIsEditing] = useState(false);
@@ -294,7 +304,7 @@ function HomePanel({ onOpen }: { onOpen: (v: View) => void }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: 24 }}>
       <div>
-        <Tile label="회원 관리" onClick={() => onOpen("members" as View)} />
+        {role === "관리자" && <Tile label="회원 관리" onClick={() => onOpen("members" as View)} />}
         <Tile label="그룹 관리" onClick={() => onOpen("groups")} />
       </div>
 
@@ -355,7 +365,7 @@ function HomePanel({ onOpen }: { onOpen: (v: View) => void }) {
               {name}
             </span>
 
-            <span style={{ fontSize: 16, fontWeight: 700, color: "#6b7280", marginLeft: 6 }}>관리자</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: "#6b7280", marginLeft: 6 }}>{role}</span>
 
             <button
               onClick={toggleEdit}

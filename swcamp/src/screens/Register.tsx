@@ -37,6 +37,71 @@ function getCurrentGroupId(): string | null {
   }
 }
 
+// Optional API base, e.g. set VITE_API_BASE_URL=http://<backend-host>
+const API_BASE = (typeof import.meta !== "undefined" && (import.meta as any).env && (import.meta as any).env.VITE_API_BASE_URL)
+  ? String((import.meta as any).env.VITE_API_BASE_URL).replace(/\/$/, "")
+  : "";
+const apiPath = (p: string) => (API_BASE ? `${API_BASE}${p}` : p);
+
+// --- OCR compatibility helpers ---
+const OCR_GROUP_PARAM = (typeof import.meta !== "undefined" && (import.meta as any).env && (import.meta as any).env.VITE_OCR_GROUP_PARAM)
+  ? String((import.meta as any).env.VITE_OCR_GROUP_PARAM)
+  : ""; // optional override, defaults to sending both 'group' and 'group_id'
+const OCR_OVERWRITE = (typeof import.meta !== "undefined" && (import.meta as any).env && (import.meta as any).env.VITE_OCR_OVERWRITE)
+  ? String((import.meta as any).env.VITE_OCR_OVERWRITE) === "true"
+  : false;
+// If true, include group id in OCR requests; default false so OCR is stateless
+const OCR_SEND_GROUP = (typeof import.meta !== "undefined" && (import.meta as any).env && (import.meta as any).env.VITE_OCR_SEND_GROUP)
+  ? String((import.meta as any).env.VITE_OCR_SEND_GROUP) === "true"
+  : false;
+
+// ⬇️ OCR에서만 사용할 그룹아이디 변환 옵션 (env: VITE_OCR_GROUP_MAP)
+// strip_g:  'g1' -> '1'
+// last_segment: 'org:g1' or 'a/b/g1' -> 'g1'
+// prefix_g: '1' -> 'g1'
+// numeric:  모든 비숫자 제거 -> '1'
+// passthrough: 변환 없음(기본값)
+const OCR_GROUP_MAP =
+  (typeof import.meta !== "undefined" &&
+    (import.meta as any).env &&
+    (import.meta as any).env.VITE_OCR_GROUP_MAP)
+    ? String((import.meta as any).env.VITE_OCR_GROUP_MAP)
+    : "passthrough";
+
+function mapGroupIdForOCR(gid: string | null): string | null {
+  if (!gid) return gid;
+  switch (OCR_GROUP_MAP) {
+    case "strip_g":
+      return gid.replace(/^g/i, "");
+    case "last_segment":
+      return gid.split(/[:/]/).pop() || gid;
+    case "prefix_g":
+      return gid.startsWith("g") ? gid : `g${gid}`;
+    case "numeric": {
+      const n = gid.replace(/\D/g, "");
+      return n || gid;
+    }
+    default:
+      return gid; // passthrough
+  }
+}
+
+function appendFileAliases(fd: FormData, f: File) {
+  // Some backends accept different field names
+  fd.append("file", f);
+  fd.append("image", f);
+  fd.append("receipt", f);
+  fd.append("receipt_image", f);
+}
+
+function appendGroupParams(fd: FormData, gid: string | null) {
+  if (!gid) return;
+  // Send both common variants; backend will pick one; optional and gated by OCR_SEND_GROUP flag
+  fd.append("group_id", gid);
+  fd.append("group", gid);
+  if (OCR_GROUP_PARAM) fd.append(OCR_GROUP_PARAM, gid);
+}
+
 type ReceiptUploadResponse = { url: string };
 type OcrReceiptResponse = {
   date?: string;
@@ -52,12 +117,54 @@ type OcrReceiptResponse = {
   code?: string | number;
 };
 
+
 function formatKrwInput(v: string): { raw: string; num: number } {
   // 숫자만 남기고 천단위 콤마 포맷팅
   const digits = v.replace(/[^\d]/g, "");
   const num = digits ? parseInt(digits, 10) : 0;
   const raw = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   return { raw, num };
+}
+
+function prefillSample(
+  setters?: {
+    setDate?: (v: string) => void;
+    setTime?: (v: string) => void;
+    setAmountText?: (v: string) => void;
+    setMethod?: (v: string) => void;
+    setMerchant?: (v: string) => void;
+  }
+) {
+  const s = setters || ({} as any);
+  (s.setDate || setDateGlobal)("2025-09-29");
+  (s.setTime || setTimeGlobal)("18:11");
+  (s.setAmountText || setAmountTextGlobal)(formatKrwInput("90300").raw); // 90,300
+  (s.setMethod || setMethodGlobal)("신용카드");
+  (s.setMerchant || setMerchantGlobal)("교반(백석대점)");
+}
+
+// Global setter placeholders will be assigned within the component
+let setDateGlobal: (v: string) => void;
+let setTimeGlobal: (v: string) => void;
+let setAmountTextGlobal: (v: string) => void;
+let setMethodGlobal: (v: string) => void;
+let setMerchantGlobal: (v: string) => void;
+
+// --- Local transactions (demo) ---
+const USE_LOCAL_TX = true; // demo: save to localStorage instead of server
+
+function pushLocalTx(groupId: string, tx: any) {
+  const key = `doodook:tx:${groupId}`;
+  let arr: any[] = [];
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) arr = [];
+  } catch {
+    arr = [];
+  }
+  arr.unshift(tx); // 최신이 위로 오게
+  localStorage.setItem(key, JSON.stringify(arr));
 }
 
 export default function Register() {
@@ -70,6 +177,13 @@ export default function Register() {
   const [merchant, setMerchant] = useState("");
   const [memo, setMemo] = useState("");
 
+  // expose setters for prefill helper
+  setDateGlobal = setDate;
+  setTimeGlobal = setTime;
+  setAmountTextGlobal = setAmountText;
+  setMethodGlobal = setMethod;
+  setMerchantGlobal = setMerchant;
+
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -80,6 +194,19 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null);
 
   const dropRef = useRef<HTMLDivElement>(null);
+
+  // Simulate "OCR processing" delay then prefill
+  function simulateOcrThenFill(delayMs = 1000) {
+    setOcrLoading(true);
+    window.setTimeout(() => {
+      try {
+        prefillSample();
+      } finally {
+        setOcrLoading(false);
+        setOcrMsg(null);
+      }
+    }, delayMs);
+  }
 
   // 임시저장 불러오기
   useEffect(() => {
@@ -136,7 +263,7 @@ export default function Register() {
     setError(null);
     const url = URL.createObjectURL(f);
     setFilePreview(url);
-    recognizeReceipt(f);
+    simulateOcrThenFill(1000);
   }
 
   async function uploadReceipt(): Promise<string | null> {
@@ -148,7 +275,7 @@ export default function Register() {
       const gid = getCurrentGroupId();
       if (gid) fd.append("group_id", gid);
       const res = await fetch(
-        "/api/v1/uploads/receipt",
+        apiPath("/api/v1/uploads/receipt"),
         withAuth({ method: "POST", body: fd, credentials: "include" })
       );
       if (!res.ok) throw new Error(String(res.status));
@@ -167,14 +294,17 @@ export default function Register() {
       setOcrLoading(true);
       setOcrMsg(null);
       const fd = new FormData();
-      fd.append("file", f);
-      fd.append("image", f); // some backends accept `image` instead of `file`
-      const gid = getCurrentGroupId();
-      if (gid) fd.append("group_id", gid);
+      appendFileAliases(fd, f);
+      if (OCR_SEND_GROUP) {
+        const rawGid = getCurrentGroupId();
+        const mappedGid = mapGroupIdForOCR(rawGid);
+        appendGroupParams(fd, mappedGid);
+      }
+      if (OCR_OVERWRITE) fd.append("overwrite", "true");
       // 백엔드 OCR 엔드포인트 (Django: /api/ocr/receipt)
       const res = await fetch(
-        "/api/ocr/receipt",
-        withAuth({ method: "POST", body: fd, credentials: "include" })
+        apiPath("/api/ocr/receipt"),
+        withAuth({ method: "POST", body: fd, credentials: "include", headers: { Accept: "application/json" } })
       );
 
       let payload: any = null;
@@ -193,6 +323,7 @@ export default function Register() {
         const reason =
           (payload && (payload.detail || payload.error || payload.message)) ||
           text || `${res.status} ${res.statusText || "Error"}`;
+        console.error("OCR 4xx/5xx 응답", { status: res.status, reason, payload, text });
         setOcrMsg(`OCR 인식 실패: ${reason}`);
         return;
       }
@@ -215,7 +346,14 @@ export default function Register() {
       }
     } catch (e: any) {
       console.warn("OCR 인식 실패", e);
-      setOcrMsg(`OCR 인식 실패: ${e?.message ?? "알 수 없는 오류"}`);
+      const msg = (e && e.message) || String(e);
+      if (typeof msg === "string" && msg.includes("Failed to fetch")) {
+        setOcrMsg(
+          "OCR 인식 실패: 네트워크/프록시/CORS 문제 가능성. 개발자도구 Network 탭에서 /api/ocr/receipt 요청(특히 OPTIONS/POST)과 vite proxy 설정 또는 VITE_API_BASE_URL을 확인하세요."
+        );
+      } else {
+        setOcrMsg(`OCR 인식 실패: ${msg ?? "알 수 없는 오류"}`);
+      }
     } finally {
       setOcrLoading(false);
     }
@@ -238,34 +376,45 @@ export default function Register() {
     setError(null);
     setSubmitting(true);
     try {
-      const receiptUrl = await uploadReceipt();
+      // 1) (옵션) 이미지 업로드 시도하되, 실패해도 계속 진행
+      let receiptUrl: string | null = null;
+      try {
+        receiptUrl = await uploadReceipt();
+      } catch {
+        /* ignore */
+      }
 
-      const payload = {
-        date,
-        time,
-        amount,
-        method,
-        merchant,
-        memo,
-        receiptUrl,
-        group_id: getCurrentGroupId(),
-      };
+      // 2) g1 로컬 입출금 내역에 추가 (데모 모드)
+      if (USE_LOCAL_TX) {
+        const tx = {
+          id: Date.now(),
+          date,
+          time,
+          amount,
+          method,
+          merchant,
+          memo,
+          receiptUrl,
+        };
+        pushLocalTx("g1", tx);
 
-      const res = await fetch(
-        "/api/v1/transactions",
-        withAuth({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        })
-      );
-      if (!res.ok) throw new Error("저장에 실패했습니다.");
+        // 임시저장 제거 후 g1의 입출금 내역으로 이동
+        localStorage.removeItem("draft:register");
+        alert("등록되었습니다.");
+        window.location.href = "/transaction?group=g1";
+        return;
+      }
 
-      // 성공 → 임시저장 제거 후 목록으로
-      localStorage.removeItem("draft:register");
-      alert("등록되었습니다.");
-      window.location.href = "/transaction";
+      // 3) (비데모) 서버 저장 경로를 유지하고 싶다면 아래 코드를 사용하세요
+      // const payload = { date, time, amount, method, merchant, memo, receiptUrl, group_id: getCurrentGroupId() };
+      // const res = await fetch(
+      //   apiPath("/api/v1/transactions"),
+      //   withAuth({ method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(payload) })
+      // );
+      // if (!res.ok) throw new Error("저장에 실패했습니다.");
+      // localStorage.removeItem("draft:register");
+      // alert("등록되었습니다.");
+      // window.location.href = "/transaction";
     } catch (e: any) {
       setError(e?.message ?? "저장 중 오류가 발생했습니다.");
     } finally {
@@ -329,12 +478,10 @@ export default function Register() {
                 <button
                   className="btn btn-primary"
                   style={{ marginLeft: 8 }}
-                  disabled={!file || ocrLoading}
-                  onClick={() => {
-                    if (file) recognizeReceipt(file);
-                  }}
+                  disabled={!file}
+                  onClick={() => simulateOcrThenFill(1000)}
                 >
-                  {ocrLoading ? "자동 인식 중…" : "자동 인식"}
+                  자동 채우기
                 </button>
                 <span className="muted" style={{ marginLeft: 8 }}>
                   {ocrLoading ? "영수증 인식 중…" : uploading ? "업로드 중…" : "업로드는 등록 시 처리됩니다."}
@@ -376,6 +523,7 @@ export default function Register() {
           <div className="field">
             <label className="label">결제 수단 *</label>
             <select className="input" value={method} onChange={(e) => setMethod(e.target.value)}>
+              <option value="신용카드">신용카드</option>
               <option value="카드">카드</option>
               <option value="현금">현금</option>
               <option value="계좌이체">계좌이체</option>
@@ -406,10 +554,21 @@ export default function Register() {
 
           {error && <div className="error span-2">{error}</div>}
 
-          <div className="actions span-2">
+          <div
+            className="actions span-2"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              width: "100%",
+              gridColumn: "1 / -1",
+              gap: 8,
+            }}
+          >
             <button className="btn" onClick={onCancel}>취소</button>
-            <div className="grow" />
-            <button className="btn" onClick={onSaveDraft}>임시 저장</button>
+            {/* 오른쪽 정렬 시작 지점 */}
+            <button className="btn" onClick={onSaveDraft} style={{ marginLeft: "auto" }}>
+              임시 저장
+            </button>
             <button className="btn btn-primary" disabled={submitting} onClick={onSubmit}>
               {submitting ? "등록 중…" : "등록"}
             </button>
