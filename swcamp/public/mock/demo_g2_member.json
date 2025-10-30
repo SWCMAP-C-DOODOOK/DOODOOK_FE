@@ -1,0 +1,20 @@
+[
+  { "name": "김○○", "role": "관리자", "email": "g2user1@example.com",  "phone": "010-2000-0001", "paid": "완납" },
+  { "name": "박○○", "role": "회원", "email": "g2user2@example.com",  "phone": "010-2000-0002", "paid": "미납" },
+  { "name": "이○○", "role": "회원",   "email": "g2user3@example.com",  "phone": "010-2000-0003", "paid": "미납" },
+  { "name": "최○○", "role": "회원",   "email": "g2user4@example.com",  "phone": "010-2000-0004", "paid": "완납" },
+  { "name": "정○○", "role": "회원",   "email": "g2user5@example.com",  "phone": "010-2000-0005", "paid": "미납" },
+  { "name": "한○○", "role": "회원",   "email": "g2user6@example.com",  "phone": "010-2000-0006", "paid": "완납" },
+  { "name": "서○○", "role": "회원",   "email": "g2user7@example.com",  "phone": "010-2000-0007", "paid": "미납" },
+  { "name": "조○○", "role": "회원",   "email": "g2user8@example.com",  "phone": "010-2000-0008", "paid": "완납" },
+  { "name": "윤○○", "role": "회원",   "email": "g2user9@example.com",  "phone": "010-2000-0009", "paid": "미납" },
+  { "name": "장○○", "role": "회원",   "email": "g2user10@example.com", "phone": "010-2000-0010", "paid": "완납" },
+  { "name": "송○○", "role": "회원",   "email": "g2user11@example.com", "phone": "010-2000-0011", "paid": "미납" },
+  { "name": "임○○", "role": "회원",   "email": "g2user12@example.com", "phone": "010-2000-0012", "paid": "완납" },
+  { "name": "문○○", "role": "회원",   "email": "g2user13@example.com", "phone": "010-2000-0013", "paid": "미납" },
+  { "name": "노○○", "role": "회원",   "email": "g2user14@example.com", "phone": "010-2000-0014", "paid": "완납" },
+  { "name": "하○○", "role": "회원",   "email": "g2user15@example.com", "phone": "010-2000-0015", "paid": "미납" },
+  { "name": "배○○", "role": "회원",   "email": "g2user16@example.com", "phone": "010-2000-0016", "paid": "완납" },
+  { "name": "권○○", "role": "회원",   "email": "g2user17@example.com", "phone": "010-2000-0017", "paid": "미납" },
+  { "name": "류○○", "role": "회원",   "email": "g2user18@example.com", "phone": "010-2000-0018", "paid": "완납" }
+]

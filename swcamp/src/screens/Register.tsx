@@ -23,6 +23,20 @@ function withAuth(init: RequestInit = {}): RequestInit {
   return { ...init, headers };
 }
 
+function getCurrentGroupId(): string | null {
+  try {
+    const sp = new URLSearchParams(window.location.search);
+    const byUrl = sp.get("group");
+    if (byUrl) return byUrl;
+    const mem =
+      localStorage.getItem("selectedGroupId") ||
+      sessionStorage.getItem("selectedGroupId");
+    return mem || null;
+  } catch {
+    return null;
+  }
+}
+
 type ReceiptUploadResponse = { url: string };
 type OcrReceiptResponse = {
   date?: string;
@@ -131,6 +145,8 @@ export default function Register() {
       setUploading(true);
       const fd = new FormData();
       fd.append("file", file);
+      const gid = getCurrentGroupId();
+      if (gid) fd.append("group_id", gid);
       const res = await fetch(
         "/api/v1/uploads/receipt",
         withAuth({ method: "POST", body: fd, credentials: "include" })
@@ -152,6 +168,9 @@ export default function Register() {
       setOcrMsg(null);
       const fd = new FormData();
       fd.append("file", f);
+      fd.append("image", f); // some backends accept `image` instead of `file`
+      const gid = getCurrentGroupId();
+      if (gid) fd.append("group_id", gid);
       // 백엔드 OCR 엔드포인트 (Django: /api/ocr/receipt)
       const res = await fetch(
         "/api/ocr/receipt",
@@ -229,6 +248,7 @@ export default function Register() {
         merchant,
         memo,
         receiptUrl,
+        group_id: getCurrentGroupId(),
       };
 
       const res = await fetch(

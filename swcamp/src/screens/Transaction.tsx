@@ -112,7 +112,7 @@ export default function Transaction() {
       <Sidebar />
 
       <section className="content">
-        <Header team="SW Camp_teamC" />
+        <Header />
 
         <div className="section-label">입출금 내역</div>
 

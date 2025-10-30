@@ -219,7 +219,7 @@ export default function Dashboard() {
       <Sidebar />
 
       <section className="content">
-        <Header team="SW Camp_teamC" />
+        <Header />
 
         <div className="grid">
           {/* Labels outside cards */}

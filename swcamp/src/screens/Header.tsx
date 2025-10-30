@@ -7,6 +7,7 @@ export type Group = {
   id: string | number;
   name: string;
   iconUrl?: string;
+  createdAt?: string; // ISO string stored together in doodook:groups
 };
 
 // 그룹 선택 드롭다운
@@ -76,11 +77,27 @@ export default function Header({
         try { saved = JSON.parse(raw) as Group[]; } catch { saved = []; }
       }
 
+      // 0.5) 마이그레이션: createdAt 없는 항목에 현재 시각 채워넣기
+      if (saved && saved.length > 0) {
+        let mutated = false;
+        saved = saved.map((g) => {
+          if (!('createdAt' in g) || !g.createdAt) {
+            mutated = true;
+            return { ...g, createdAt: new Date().toISOString() };
+          }
+          return g;
+        });
+        if (mutated) {
+          try { localStorage.setItem(LS_GROUPS, JSON.stringify(saved)); } catch {}
+        }
+      }
+
       // 1) 저장된 그룹이 없으면 기본 두 개 시드
       if (!saved || saved.length === 0) {
+        const nowIso = new Date().toISOString();
         saved = [
-          { id: 'g1', name: '그룹 1' },
-          { id: 'g2', name: '그룹 2' },
+          { id: 'g1', name: '그룹 1', createdAt: nowIso },
+          { id: 'g2', name: '그룹 2', createdAt: nowIso },
         ];
         try { localStorage.setItem(LS_GROUPS, JSON.stringify(saved)); } catch {}
       }
@@ -171,6 +188,7 @@ export default function Header({
       const newGroup: Group = {
         id: ret?.id ?? String(Date.now()),
         name: ret?.name ?? name,
+        createdAt: new Date().toISOString(),
       };
       // 병합(이미 존재하면 추가 안 함)
       setOptimisticGroups((prev) => {
